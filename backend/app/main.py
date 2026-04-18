@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.models import User
+from app.routes.auth import router as auth_router
 
 app = FastAPI(title="Job Assistant API", version="1.0.0")
 
@@ -14,6 +15,8 @@ app.add_middleware(
 )
 
 Base.metadata.create_all(bind=engine) # This line creates all the tables in the database based on the models defined using SQLAlchemy's declarative base. It checks if the tables already exist and creates them if they don't. This is typically done at application startup to ensure the database schema is in place before handling any requests.
+
+app.include_router(auth_router)
 
 @app.get("/")
 def root():
