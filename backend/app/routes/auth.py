@@ -1,11 +1,33 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, Token, LoginRequest
-from app.auth import hash_password, verify_password, create_access_token
+from app.auth import hash_password, verify_password, create_access_token, verify_token
+
 
 router = APIRouter(prefix="/auth", tags=["Authentication"]) # all routes in this file starts with /auth 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login") # This is a FastAPI utility that defines the token URL for the OAuth2 password flow. It tells FastAPI where to send the login requests to obtain access tokens.
+
+def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    user_id = verify_token(token)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found"
+        )
+    return user
 
 @router.post("/register", response_model=UserResponse)
 def register(user_data: UserCreate, db: Session = Depends(get_db)): # get_db is fastAPI's dependecy injection.
@@ -47,16 +69,20 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     
     return {"access_token": token, "token_type": "bearer"}
 
+# @router.get("/me", response_model=UserResponse)
+# def get_me(token: str, db: Session = Depends(get_db)):
+#     from app.auth import verify_token
+#     user_id = verify_token(token)
+    
+#     if not user_id:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid or expired token"
+#         )
+    
+#     user = db.query(User).filter(User.id == user_id).first()
+#     return user
+
 @router.get("/me", response_model=UserResponse)
-def get_me(token: str, db: Session = Depends(get_db)):
-    from app.auth import verify_token
-    user_id = verify_token(token)
-    
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token"
-        )
-    
-    user = db.query(User).filter(User.id == user_id).first()
-    return user
+def get_me(current_user: User = Depends(get_current_user)):
+    return current_user

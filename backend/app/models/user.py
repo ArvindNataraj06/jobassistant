@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String, DateTime
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 from app.database import Base
 from datetime import datetime
 import uuid
@@ -13,3 +14,5 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     name = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    jobs = relationship("Job", back_populates="owner")
