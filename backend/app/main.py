@@ -1,9 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.models import User, Job
+from app.models import User, Job, Message
 from app.routes.auth import router as auth_router
 from app.routes.jobs import router as jobs_router
+from app.routes.ai import router as ai_router
 
 app = FastAPI(title="Job Assistant API", version="1.0.0")
 
@@ -19,6 +20,7 @@ Base.metadata.create_all(bind=engine) # This line creates all the tables in the 
 
 app.include_router(auth_router)
 app.include_router(jobs_router)
+app.include_router(ai_router)
 
 @app.get("/")
 def root():

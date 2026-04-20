@@ -5,16 +5,14 @@ from app.database import Base
 from datetime import datetime
 import uuid
 
-class Job(Base):
-    __tablename__ = "jobs"
+class Message(Base):
+    __tablename__ = "chat_messages"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    job_id = Column(UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=False)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    company = Column(String, nullable=False)
     role = Column(String, nullable=False)
-    description = Column(Text, nullable=True)
-    status = Column(String, default="saved")
+    content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    owner = relationship("User", back_populates="jobs")
-    messages = relationship("Message", back_populates="job")
+    job = relationship("Job", back_populates="messages")
