@@ -10,7 +10,10 @@ app = FastAPI(title="Job Assistant API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"], # By default browsers block cross-origin requests for security reasons. This middleware allows requests from the specified origin (your frontend) to access the backend API.
+    allow_origins=["http://localhost:5173",
+                   "http://localhost:5174"
+                   "http://localhost:5175",
+                   ], # By default browsers block cross-origin requests for security reasons. This middleware allows requests from the specified origin (your frontend) to access the backend API.
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
