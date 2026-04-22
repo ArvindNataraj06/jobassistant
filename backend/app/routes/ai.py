@@ -40,13 +40,14 @@ async def call_groq(system_prompt: str, messages: list) -> str:
             detail=f"AI service error: {str(e)}"
         )
 
-
 @router.post("/cover-letter/{job_id}")
 async def generate_cover_letter(
     job_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    from app.models.profile import Profile
+
     job = db.query(Job).filter(
         Job.id == job_id,
         Job.user_id == current_user.id
@@ -58,49 +59,109 @@ async def generate_cover_letter(
             detail="Job not found"
         )
 
-    system_prompt = """You are an expert career coach with 15 years of experience 
-helping developers land jobs at top tech companies. You write cover letters that:
-- Sound human and genuine, not AI-generated
-- Are specific to the company and role, not generic
-- Highlight technical skills with concrete examples
-- Show personality and genuine enthusiasm
-- Are concise and impactful — every sentence earns its place
-- End with a confident call to action
+    profile = db.query(Profile).filter(
+        Profile.user_id == current_user.id
+    ).first()
 
-Format the letter professionally with proper paragraphs.
-Never use placeholder text. Always use the exact name provided."""
+    profile_info = ""
+    if profile:
+        if profile.current_role:
+            profile_info += f"\nCurrent Role: {profile.current_role}"
+        if profile.skills:
+            profile_info += f"\nSkills: {profile.skills}"
+        if profile.experience:
+            profile_info += f"\nExperience: {profile.experience}"
+        if profile.education:
+            profile_info += f"\nEducation: {profile.education}"
+        if profile.bio:
+            profile_info += f"\nAbout: {profile.bio}"
+
+    system_prompt = """You are an expert career coach and professional cover letter writer.
+    Write compelling, personalized cover letters that highlight relevant skills and experience.
+    Keep the tone professional but genuine. Structure: opening hook, why this company,
+    relevant skills/experience, closing call to action. Maximum 4 paragraphs.
+    Use ONLY the candidate information provided. Never invent details."""
 
     messages = [
-    {
-        "role": "user",
-        "content": f"""Write a compelling cover letter for this position.
+        {
+            "role": "user",
+            "content": f"""Write a cover letter for this position:
 
-POSITION DETAILS:
-- Company: {job.company}
-- Role: {job.role}
-- Job Description: {job.description}
+Company: {job.company}
+Role: {job.role}
+Job Description: {job.description}
 
-CANDIDATE:
-- Full Name: {current_user.name}
-- Background: Master's student in Applied Computer Science in Germany
-- Key Skills: React.js, JavaScript, Python, FastAPI, PostgreSQL, Docker, CI/CD, Jest, Cypress
-- Experience: Software Developer intern at DeepInsightsX Berlin, building AI-driven web apps
-- Current Project: AI-powered traffic monitoring dashboard (Master's thesis)
-- Strengths: Frontend development, testing, Agile workflows, startup experience
+Candidate Name: {current_user.name}
+{profile_info if profile_info else "No additional profile information provided."}
 
-INSTRUCTIONS:
-1. Opening: Strong hook that shows genuine interest in {job.company} specifically
-2. Paragraph 2: Why {job.company} — show you know the company, connect their mission to your goals  
-3. Paragraph 3: Match YOUR skills directly to THEIR requirements from the job description
-4. Closing: Confident, specific call to action
-5. Sign off with: {current_user.name}
-
-Make it sound like a real person wrote it, not an AI. Be specific, not generic."""
-    }
-]
+Make it compelling and tailored to this specific role."""
+        }
+    ]
 
     cover_letter = await call_groq(system_prompt, messages)
     return {"cover_letter": cover_letter, "job_id": job_id}
+
+
+# @router.post("/cover-letter/{job_id}")
+# async def generate_cover_letter(
+#     job_id: str,
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(get_current_user)
+# ):
+#     job = db.query(Job).filter(
+#         Job.id == job_id,
+#         Job.user_id == current_user.id
+#     ).first()
+
+#     if not job:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail="Job not found"
+#         )
+
+#     system_prompt = """You are an expert career coach with 15 years of experience 
+# helping developers land jobs at top tech companies. You write cover letters that:
+# - Sound human and genuine, not AI-generated
+# - Are specific to the company and role, not generic
+# - Highlight technical skills with concrete examples
+# - Show personality and genuine enthusiasm
+# - Are concise and impactful — every sentence earns its place
+# - End with a confident call to action
+
+# Format the letter professionally with proper paragraphs.
+# Never use placeholder text. Always use the exact name provided."""
+
+#     messages = [
+#     {
+#         "role": "user",
+#         "content": f"""Write a compelling cover letter for this position.
+
+# POSITION DETAILS:
+# - Company: {job.company}
+# - Role: {job.role}
+# - Job Description: {job.description}
+
+# CANDIDATE:
+# - Full Name: {current_user.name}
+# - Background: Master's student in Applied Computer Science in Germany
+# - Key Skills: React.js, JavaScript, Python, FastAPI, PostgreSQL, Docker, CI/CD, Jest, Cypress
+# - Experience: Software Developer intern at DeepInsightsX Berlin, building AI-driven web apps
+# - Current Project: AI-powered traffic monitoring dashboard (Master's thesis)
+# - Strengths: Frontend development, testing, Agile workflows, startup experience
+
+# INSTRUCTIONS:
+# 1. Opening: Strong hook that shows genuine interest in {job.company} specifically
+# 2. Paragraph 2: Why {job.company} — show you know the company, connect their mission to your goals  
+# 3. Paragraph 3: Match YOUR skills directly to THEIR requirements from the job description
+# 4. Closing: Confident, specific call to action
+# 5. Sign off with: {current_user.name}
+
+# Make it sound like a real person wrote it, not an AI. Be specific, not generic."""
+#     }
+# ]
+
+#     cover_letter = await call_groq(system_prompt, messages)
+#     return {"cover_letter": cover_letter, "job_id": job_id}
 
 
 @router.post("/chat/{job_id}", response_model=ChatResponse)

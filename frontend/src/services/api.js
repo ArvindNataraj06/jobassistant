@@ -51,4 +51,9 @@ export const aiService = {
   getChatHistory: (jobId) => api.get(`/ai/chat/${jobId}`),
 };
 
+export const profileService = {
+  getProfile: () => api.get("/profile/"),
+  updateProfile: (data) => api.patch("/profile/", data),
+};
+
 export default api;

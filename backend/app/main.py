@@ -5,6 +5,7 @@ from app.models import User, Job, Message
 from app.routes.auth import router as auth_router
 from app.routes.jobs import router as jobs_router
 from app.routes.ai import router as ai_router
+from app.routes.profile import router as profile_router
 
 app = FastAPI(title="Job Assistant API", version="1.0.0")
 
@@ -24,6 +25,7 @@ Base.metadata.create_all(bind=engine) # This line creates all the tables in the 
 app.include_router(auth_router)
 app.include_router(jobs_router)
 app.include_router(ai_router)
+app.include_router(profile_router)
 
 @app.get("/")
 def root():
